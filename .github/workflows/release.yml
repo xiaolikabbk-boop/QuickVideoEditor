@@ -28,6 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           choco install ffmpeg -y --no-progress
+          choco install innosetup -y --no-progress
       - name: Determine version
         id: version
         shell: pwsh

@@ -56,6 +56,7 @@ Remove-Item -LiteralPath $AssetPath -Force -ErrorAction SilentlyContinue
 Compress-Archive -LiteralPath "$DistPath\$AppName" -DestinationPath $AssetPath -CompressionLevel Optimal
 $Hash = (Get-FileHash -LiteralPath $AssetPath -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "$AssetPath.sha256" -Value "$Hash  $AssetName" -Encoding ASCII
+powershell -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\build_installer.ps1" -Version $Version -SourceDir "$DistPath\$AppName" -OutputDir 'release'
 
 Write-Host "Build complete: $AssetPath"
 Write-Host "SHA-256: $Hash"

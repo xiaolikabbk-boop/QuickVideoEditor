@@ -43,8 +43,10 @@ python -m pip install -r requirements.txt
 
 - `release/QuickVideoEditor-v1.0.0-win-x64.zip`
 - `release/QuickVideoEditor-v1.0.0-win-x64.zip.sha256`
+- `release/QuickVideoEditor-v1.0.0-Setup.exe`
+- `release/QuickVideoEditor-v1.0.0-Setup.exe.sha256`
 
-zip 内含完整的 `批量配乐工具` onedir 目录以及独立的 `更新助手.exe`。不要只发布主 exe。
+`Setup.exe` 用于新电脑首次安装，默认安装到当前用户的 `%LOCALAPPDATA%\Programs\QuickVideoEditor`，不需要管理员权限。zip 内含完整的 `批量配乐工具` onedir 目录以及独立的 `更新助手.exe`，用于程序内更新。不要只发布主 exe。
 
 ## 首次发布
 
@@ -52,7 +54,7 @@ zip 内含完整的 `批量配乐工具` onedir 目录以及独立的 `更新助
 2. 执行测试与构建脚本。
 3. 在 GitHub 仓库进入 `Releases`，选择 `Draft a new release`。
 4. 新建标签 `v1.0.0`，填写中文版本说明。
-5. 上传 zip 和同名 `.sha256`，然后发布 Release。
+5. 上传安装器、zip 和各自同名的 `.sha256`，然后发布 Release。
 
 也可以提交代码后创建并推送 `v1.0.0` 标签，由 GitHub Actions 自动测试、构建和创建 Release。
 
