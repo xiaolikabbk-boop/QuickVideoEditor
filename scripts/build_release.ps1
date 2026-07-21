@@ -17,10 +17,28 @@ if (-not $VersionLine -or $VersionLine.Matches[0].Groups[1].Value -ne $Version) 
     throw "APP_VERSION in version.py must equal $Version"
 }
 
-$Ffmpeg = Get-Command ffmpeg.exe -ErrorAction Stop
-$Ffprobe = Get-Command ffprobe.exe -ErrorAction Stop
-$env:FFMPEG_BIN_DIR = Split-Path -Parent $Ffmpeg.Source
-if ((Split-Path -Parent $Ffprobe.Source) -ne $env:FFMPEG_BIN_DIR) {
+$FfmpegCandidates = @()
+$FfprobeCandidates = @()
+if ($env:ChocolateyInstall) {
+    $FfmpegCandidates += Get-ChildItem -LiteralPath "$env:ChocolateyInstall\lib" -Filter ffmpeg.exe -Recurse -File -ErrorAction SilentlyContinue
+    $FfprobeCandidates += Get-ChildItem -LiteralPath "$env:ChocolateyInstall\lib" -Filter ffprobe.exe -Recurse -File -ErrorAction SilentlyContinue
+}
+function Resolve-Binary($command) {
+    $item = Get-Item -LiteralPath $command.Source -Force
+    if ($item.Target) {
+        return Get-Item -LiteralPath $item.Target[0] -Force
+    }
+    return $item
+}
+$FfmpegCandidates += Get-Command ffmpeg.exe -ErrorAction Stop | ForEach-Object { Resolve-Binary $_ }
+$FfprobeCandidates += Get-Command ffprobe.exe -ErrorAction Stop | ForEach-Object { Resolve-Binary $_ }
+$Ffmpeg = $FfmpegCandidates | Where-Object { $_.Length -gt 1MB } | Select-Object -First 1
+$Ffprobe = $FfprobeCandidates | Where-Object { $_.Length -gt 1MB } | Select-Object -First 1
+if (-not $Ffmpeg -or -not $Ffprobe) {
+    throw 'Could not locate real ffmpeg.exe and ffprobe.exe (Chocolatey shims are not accepted).'
+}
+$env:FFMPEG_BIN_DIR = $Ffmpeg.DirectoryName
+if ($Ffprobe.DirectoryName -ne $env:FFMPEG_BIN_DIR) {
     throw 'ffmpeg.exe and ffprobe.exe must be in the same directory.'
 }
 
@@ -47,6 +65,11 @@ $MainSpec = (Get-ChildItem -LiteralPath $Root -Filter '*.spec' | Where-Object Na
 python -m PyInstaller --noconfirm --clean --distpath $DistPath $UpdaterSpec
 python -m PyInstaller --noconfirm --clean --distpath $DistPath $MainSpec
 Copy-Item -LiteralPath "$DistPath\$UpdaterName.exe" -Destination "$DistPath\$AppName\$UpdaterName.exe" -Force
+$BundledFfmpeg = Get-Item -LiteralPath "$DistPath\$AppName\_internal\ffmpeg\ffmpeg.exe"
+$BundledFfprobe = Get-Item -LiteralPath "$DistPath\$AppName\_internal\ffmpeg\ffprobe.exe"
+if ($BundledFfmpeg.Length -le 1MB -or $BundledFfprobe.Length -le 1MB) {
+    throw 'The packaged FFmpeg files are too small; a Chocolatey shim was bundled.'
+}
 
 $ReleaseDir = Join-Path $Root 'release'
 New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
