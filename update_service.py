@@ -18,6 +18,7 @@ from packaging.version import InvalidVersion, Version
 
 from version import (
     APP_NAME,
+    GITHUB_LATEST_MANIFEST,
     GITHUB_RELEASES_API,
     MAIN_EXECUTABLE_NAME,
     RELEASE_ASSET_TEMPLATE,
@@ -59,9 +60,43 @@ def is_newer_version(latest: str, current: str) -> bool:
 
 def fetch_latest_release(
     current_version: str,
+    manifest_url: str = GITHUB_LATEST_MANIFEST,
     api_url: str = GITHUB_RELEASES_API,
     timeout: float = 10,
 ) -> ReleaseInfo | None:
+    manifest_request = urllib.request.Request(
+        manifest_url,
+        headers={"User-Agent": f"QuickVideoEditor/{current_version}"},
+    )
+    manifest_error: BaseException | None = None
+    try:
+        with urllib.request.urlopen(manifest_request, timeout=timeout) as response:
+            payload = json.load(response)
+        latest_version = str(_version(str(payload.get("version", ""))))
+        if not is_newer_version(latest_version, current_version):
+            return None
+        package_name = RELEASE_ASSET_TEMPLATE.format(version=latest_version)
+        if str(payload.get("package_name")) != package_name:
+            raise UpdateError(f"更新清单中的文件名无效：{payload.get('package_name')}")
+        package_url = str(payload.get("package_url") or "")
+        checksum_url = str(payload.get("checksum_url") or "")
+        if not package_url.startswith("https://github.com/") or not checksum_url.startswith("https://github.com/"):
+            raise UpdateError("更新清单中的下载地址无效")
+        return ReleaseInfo(
+            version=latest_version,
+            tag=str(payload.get("tag") or f"v{latest_version}"),
+            notes=str(payload.get("notes") or "本版本未提供更新说明。"),
+            page_url=str(payload.get("page_url") or ""),
+            package_url=package_url,
+            checksum_url=checksum_url,
+            package_name=package_name,
+        )
+    except UpdateError:
+        raise
+    except (OSError, urllib.error.URLError, json.JSONDecodeError, TypeError) as exc:
+        manifest_error = exc
+
+    # Compatibility fallback for Releases created before latest.json was introduced.
     request = urllib.request.Request(
         api_url,
         headers={
@@ -74,7 +109,7 @@ def fetch_latest_release(
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.load(response)
     except (OSError, urllib.error.URLError, json.JSONDecodeError) as exc:
-        raise UpdateError(f"无法连接更新服务器：{exc}") from exc
+        raise UpdateError(f"无法连接更新服务器：清单 {manifest_error}；API {exc}") from exc
 
     tag = str(payload.get("tag_name", "")).strip()
     latest_version = str(_version(tag))

@@ -1,10 +1,13 @@
 APP_NAME = "批量配乐工具"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 
 GITHUB_OWNER = "xiaolikabbk-boop"
 GITHUB_REPOSITORY = "QuickVideoEditor"
 GITHUB_RELEASES_API = (
     f"https://api.github.com/repos/{GITHUB_OWNER}/{GITHUB_REPOSITORY}/releases/latest"
+)
+GITHUB_LATEST_MANIFEST = (
+    f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPOSITORY}/releases/latest/download/latest.json"
 )
 
 RELEASE_ASSET_TEMPLATE = "QuickVideoEditor-v{version}-win-x64.zip"

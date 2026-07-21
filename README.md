@@ -2,7 +2,7 @@
 
 把多条视频拖入窗口，程序会从指定音乐文件夹中优先不重复地随机配乐，并批量输出成品。
 
-当前版本：`v1.0.0`
+当前版本：`v1.0.1`
 
 日常使用可直接打开 `dist/批量配乐工具/批量配乐工具.exe`。
 
@@ -45,6 +45,9 @@ python -m pip install -r requirements.txt
 - `release/QuickVideoEditor-v1.0.0-win-x64.zip.sha256`
 - `release/QuickVideoEditor-v1.0.0-Setup.exe`
 - `release/QuickVideoEditor-v1.0.0-Setup.exe.sha256`
+- `release/QuickVideoEditor-v1.0.0-Compatible-Setup.zip`
+- `release/QuickVideoEditor-v1.0.0-Compatible-Setup.zip.sha256`
+- `release/latest.json`
 
 `Setup.exe` 用于新电脑首次安装，默认安装到当前用户的 `%LOCALAPPDATA%\Programs\QuickVideoEditor`，不需要管理员权限。zip 内含完整的 `批量配乐工具` onedir 目录以及独立的 `更新助手.exe`，用于程序内更新。不要只发布主 exe。
 
@@ -65,4 +68,4 @@ python -m pip install -r requirements.txt
 3. 执行 `.\scripts\build_release.ps1 -Version 1.0.1`。
 4. 创建标签 `v1.0.1` 和对应 GitHub Release，上传两个同名资产。
 
-程序只接受严格匹配当前版本号的资产名称。GitHub 或网络不可用时，自动检查会静默结束，不影响视频处理。
+程序从 Release 的静态 `latest.json` 获取最新版本，不消耗 GitHub API 次数，并且只接受严格匹配当前版本号的资产名称。GitHub 或网络不可用时，自动检查会静默结束，不影响视频处理。

@@ -1,4 +1,5 @@
 import hashlib
+import json
 import tempfile
 import unittest
 import zipfile
@@ -11,6 +12,7 @@ from update_service import (
     parse_checksum,
     prepare_update,
     safe_extract_package,
+    fetch_latest_release,
 )
 from version import APP_NAME, MAIN_EXECUTABLE_NAME, UPDATE_HELPER_NAME
 
@@ -57,6 +59,44 @@ class UpdateServiceTests(unittest.TestCase):
             prepared = prepare_update(release, cache_root=root / "cache")
             self.assertTrue((prepared.package_dir / MAIN_EXECUTABLE_NAME).is_file())
             self.assertTrue((prepared.package_dir / UPDATE_HELPER_NAME).is_file())
+
+    def test_reads_latest_release_from_static_manifest_without_api(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = Path(folder) / "latest.json"
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "version": "1.0.1",
+                        "tag": "v1.0.1",
+                        "notes": "Fix update checks.",
+                        "page_url": "https://github.com/xiaolikabbk-boop/QuickVideoEditor/releases/tag/v1.0.1",
+                        "package_name": "QuickVideoEditor-v1.0.1-win-x64.zip",
+                        "package_url": "https://github.com/xiaolikabbk-boop/QuickVideoEditor/releases/download/v1.0.1/QuickVideoEditor-v1.0.1-win-x64.zip",
+                        "checksum_url": "https://github.com/xiaolikabbk-boop/QuickVideoEditor/releases/download/v1.0.1/QuickVideoEditor-v1.0.1-win-x64.zip.sha256",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            release = fetch_latest_release(
+                "1.0.0",
+                manifest_url=manifest.as_uri(),
+                api_url="https://api.invalid/should-not-be-used",
+            )
+            self.assertIsNotNone(release)
+            self.assertEqual("1.0.1", release.version)
+            self.assertEqual("Fix update checks.", release.notes)
+
+    def test_static_manifest_reports_current_version_without_api(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = Path(folder) / "latest.json"
+            manifest.write_text(json.dumps({"version": "1.0.1"}), encoding="utf-8")
+            self.assertIsNone(
+                fetch_latest_release(
+                    "1.0.1",
+                    manifest_url=manifest.as_uri(),
+                    api_url="https://api.invalid/should-not-be-used",
+                )
+            )
 
 
 if __name__ == "__main__":

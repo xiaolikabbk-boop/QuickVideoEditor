@@ -57,6 +57,22 @@ Compress-Archive -LiteralPath "$DistPath\$AppName" -DestinationPath $AssetPath -
 $Hash = (Get-FileHash -LiteralPath $AssetPath -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "$AssetPath.sha256" -Value "$Hash  $AssetName" -Encoding ASCII
 powershell -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\build_installer.ps1" -Version $Version -SourceDir "$DistPath\$AppName" -OutputDir 'release'
+powershell -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\build_compat_installer.ps1" -Version $Version -SourceDir "$DistPath\$AppName" -OutputDir 'release'
+
+$Tag = "v$Version"
+$PackageUrl = "https://github.com/xiaolikabbk-boop/QuickVideoEditor/releases/download/$Tag/$AssetName"
+$NotesPath = Join-Path $Root "release_notes\$Tag.md"
+$Notes = if (Test-Path -LiteralPath $NotesPath) { Get-Content -LiteralPath $NotesPath -Raw -Encoding UTF8 } else { "See the GitHub Release page for details." }
+$Manifest = [ordered]@{
+    version = $Version
+    tag = $Tag
+    notes = $Notes
+    page_url = "https://github.com/xiaolikabbk-boop/QuickVideoEditor/releases/tag/$Tag"
+    package_name = $AssetName
+    package_url = $PackageUrl
+    checksum_url = "$PackageUrl.sha256"
+} | ConvertTo-Json
+[IO.File]::WriteAllText((Join-Path $ReleaseDir 'latest.json'), $Manifest, (New-Object Text.UTF8Encoding($false)))
 
 Write-Host "Build complete: $AssetPath"
 Write-Host "SHA-256: $Hash"
