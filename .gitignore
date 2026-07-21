@@ -1,0 +1,10 @@
+__pycache__/
+build/
+dist/
+dist-*/
+release/
+baseline/
+.version_info.txt
+*.py[cod]
+.venv/
+.pytest_cache/

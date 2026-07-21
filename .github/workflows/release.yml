@@ -1,0 +1,52 @@
+name: Build Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without v prefix (for example 1.0.1)
+        required: true
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          choco install ffmpeg -y --no-progress
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.version }}' } else { '${{ github.ref_name }}'.TrimStart('v') }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+      - name: Test
+        run: python -m unittest -v
+      - name: Build and package
+        shell: pwsh
+        run: .\scripts\build_release.ps1 -Version '${{ steps.version.outputs.version }}'
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickVideoEditor-v${{ steps.version.outputs.version }}-win-x64
+          path: release/*
+      - name: Publish GitHub Release for tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: release/*
